@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registro de Pacientes</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+	<script>
+		window.onload = function() {
+			const params = new URLSearchParams(window.location.search);
+			if (params.get('guardado') === '1') {
+				const toast = document.createElement('div');
+				toast.textContent = '✅ Paciente guardado correctamente';
+				toast.style.position = 'fixed';
+				toast.style.bottom = '20px';
+				toast.style.right = '20px';
+				toast.style.backgroundColor = '#4CAF50';
+				toast.style.color = 'white';
+				toast.style.padding = '10px 20px';
+				toast.style.borderRadius = '8px';
+				toast.style.boxShadow = '0 0 10px rgba(0,0,0,0.2)';
+				toast.style.zIndex = '1000';
+				toast.style.fontSize = '16px';
+				document.body.appendChild(toast);
+
+				// Quitar el toast luego de 3 segundos
+				setTimeout(() => {
+					toast.remove();
+					const url = new URL(window.location);
+					url.searchParams.delete('guardado');
+					window.history.replaceState({}, document.title, url);
+				}, 3000); 
+			}
+		}
+	</script>
+	<!-- Bootstrap CSS -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+	<!-- Bootstrap Icons (opcional para el ícono del calendario) -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+
+
+</head>
+<body>
+<!-- Mensaje ajuste -->
+{% if request.args.get('guardado') == '1' %}
+    <div style="background-color: #d4edda; padding: 10px; border-radius: 5px; color: #155724; margin-bottom: 15px;">
+        ✅ Datos guardados correctamente.
+        {% if request.args.get('ajustada') == '1' %}
+            {% if request.args.get('motivo') == 'domingo' %}
+                <br>📆 La fecha fue ajustada porque caía en domingo.
+            {% else %}
+                <br>📅 La fecha fue ajustada porque no coincidía con la disponibilidad del médico.
+            {% endif %}
+        {% endif %}
+    </div>
+{% endif %}
+
+
+
+    <h2>Formulario de Registro</h2>
+	    <!-- Mostrar mensajes de éxito -->
+	<br>
+ 	<h5>📅 Disponibilidad de los médicos</h5>
+<!--	{% if disponibilidad %}
+		<ul>
+		{% for medico, dias in disponibilidad.items() %}
+			<li><strong> {{ medico.title() }} </strong> {{ dias | join(', ') }} días</li>
+		{% endfor %}
+		</ul>
+	{% else %}
+		<p style="color: red;">⚠️ Aún no se ha ingresado disponibilidad.</p>
+	{% endif %} -->
+
+
+<!--     <button style="margin-top: 10px;">Editar disponibilidad</button>
+	<form action="/multi_calendario" method="get" style="display:inline;">
+		<button class="btn btn-secondary">📆 Ver Calendarios</button>
+	</form> -->
+	<div class="d-flex gap-2 align-items-center mt-3">
+	  <a href="/editar_disponibilidad" class="btn btn-success d-flex align-items-center">
+		<i class="bi bi-pencil-fill me-2"></i> Editar disponibilidad
+	  </a>
+	  <a href="/multi_calendario" class="btn btn-success d-flex align-items-center">
+		<i class="bi bi-calendar-event me-2"></i> Ver Calendarios
+	  </a>
+	</div>
+
+
+
+</a>
+<hr>
+
+    <form action="/guardar" method="post">
+		<h4>Datos de Paciente</h4>
+        <label>Nombre:</label><br>
+        <input type="text" name="nombre" required><br>
+
+		<label for="dni">DNI del paciente:</label>
+		<input type="text" id="dni" name="dni" pattern="\d{8}" maxlength="8" minlength="8" required
+			   title="Debe tener exactamente 8 dígitos numéricos">
+
+        <label>Fecha:</label><br>
+        <input type="date" name="fecha" required><br>
+<!-- aqui se cambió la etiqueta a mostrar -->
+		<label for="medico">Médico:</label>
+		<select id="medico" name="medico" required onchange="actualizarOpcionesDias()">
+			<option value="">-- Selecciona un médico --</option>
+			  <option value="Dr. Correa">Dr. Correa</option>
+			  <option value="Dr. Isla">Dr. Isla</option>
+              <option value="Dra. Laymito">Dra. Laymito</option>
+              <option value="Dra. Torres">Dra. Torres</option>
+              <option value="Dr. Figueroa">Dr. Figueroa</option>
+		</select>
+			<br><br>	
+			<label for="offset">¿A cuántos días?</label><br>
+			<select id="offset" name="offset" onchange="onOffsetChange()" required>
+			  <option value="">-- Elige un plazo --</option>
+			  <option value="60">60 días</option>
+			  <option value="90">90 días</option>
+			  <option value="120">120 días</option>
+			  <option value="personalizado">Menos de 30 días...</option>
+			</select>
+
+			<div id="custom-offset" style="display:none; margin-top:8px;">
+			  <label for="offset_custom">Ingresa días (1–29):</label>
+			  <input type="number" id="offset_custom" name="offset_custom" min="1" max="29">
+			</div>
+
+		<script>
+		  function onOffsetChange() {
+			const sel = document.getElementById('offset');
+			document.getElementById('custom-offset').style.display =
+			  sel.value === 'personalizado' ? 'block' : 'none';
+		  }
+		</script>
+
+
+		<br><br>
+        <button type="submit">Guardar Paciente</button>
+    </form>
+
+    <hr>
+
+    <h2>Generar Reporte</h2>
+    <form action="/reporte" method="post">
+        <label>Seleccionar Médico:</label><br>
+        <select name="medico" onchange="actualizarOpcionesDias()">
+            <option value="">-- Todos los Médicos --</option>
+            <option value="Dr. Correa">Dr. Correa</option>
+            <option value="Dr. Isla">Dr. Isla</option>
+            <option value="Dra. Laymito">Dra. Laymito</option>
+            <option value="Dra. Torres">Dra. Torres</option>
+            <option value="Dr. Figueroa">Dr. Figueroa</option>
+        </select><br><br>
+
+        <label>Seleccionar Fecha (opcional):</label><br>
+        <input type="date" name="proxima_fecha"><br><br>
+
+        <button type="submit">Generar PDF</button>
+    </form>
+	
+	<script>
+    const disponibilidadMedicos = {{ disponibilidad|tojson }};
+	console.log(disponibilidadMedicos);
+    
+    function actualizarOpcionesDias() {
+        const medico = document.getElementById("medico").value;
+        const diasSelect = document.getElementById("dias");
+        const inputPersonalizado = document.getElementById("input-personalizado");
+        inputPersonalizado.style.display = "none";
+
+        diasSelect.innerHTML = '<option value="">Seleccione días</option>';
+
+        if (medico && disponibilidadMedicos[medico]) {
+            disponibilidadMedicos[medico].forEach(d => {
+                const opt = document.createElement("option");
+                opt.value = d;
+                const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                opt.text = `${diasSemana[d]} (${d})`;
+                diasSelect.appendChild(opt);
+            });
+
+            const opt = document.createElement("option");
+            opt.value = "personalizado";
+            opt.text = "Otro...";
+            diasSelect.appendChild(opt);
+        }
+    }
+
+    function mostrarInputPersonalizado() {
+        const diasSelect = document.getElementById('dias');
+        const inputPersonalizado = document.getElementById('input-personalizado');
+        inputPersonalizado.style.display = diasSelect.value === 'personalizado' ? 'block' : 'none';
+    }
+</script>
+
+<!-- <a href="/ver_disponibilidad">
+  <button style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px;">
+    Ver Disponibilidad del Mes
+  </button>
+</a> -->
+
+
+</body>
+</html>

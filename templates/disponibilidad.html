@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Disponibilidad Médica</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+        }
+
+        .dias {
+            margin-top: 10px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .mensaje {
+            margin-top: 10px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h2>📅 Editar Disponibilidad Médica</h2>
+
+    <form action="/disponibilidad" method="post">
+        <label for="medico">Selecciona un médico:</label>
+        <select name="medico" id="medico" required>
+            <option value="">-- Elige un médico --</option>
+            <option value="Dr. Correa">Dr. Correa</option>
+            <option value="Dr. Isla">Dr. Isla</option>
+            <option value="Dra. Laymito">Dra. Laymito</option>
+            <option value="Dra. Torres">Dra. Torres</option>
+            <option value="Dr. Figueroa">Dr. Figueroa</option>
+        </select>
+
+        <div class="dias">
+            <p>Selecciona los días en que el médico atiende:</p>
+            <label><input type="checkbox" name="dias" value="0"> Lunes</label><br>
+            <label><input type="checkbox" name="dias" value="1"> Martes</label><br>
+            <label><input type="checkbox" name="dias" value="2"> Miércoles</label><br>
+            <label><input type="checkbox" name="dias" value="3"> Jueves</label><br>
+            <label><input type="checkbox" name="dias" value="4"> Viernes</label><br>
+            <label><input type="checkbox" name="dias" value="5"> Sábado</label><br>
+            <label><input type="checkbox" name="dias" value="6"> Domingo</label><br>
+        </div>
+
+        <button type="submit">Guardar Disponibilidad</button>
+    </form>
+
+    {% if mensaje %}
+        <div class="mensaje">{{ mensaje }}</div>
+    {% endif %}
+
+    <br>
+    <a href="/">
+        <button type="button" style="background-color: #777;">← Volver al Registro</button>
+    </a>
+</body>
+</html>

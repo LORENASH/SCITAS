@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calendario de Disponibilidad</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            width: 14.2%;
+            height: 100px;
+            vertical-align: top;
+            padding: 5px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .dia {
+            font-weight: bold;
+        }
+        .disponible {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h2>📅 Calendario de Disponibilidad</h2>
+
+    <table>
+        <tr>
+            <th>Dom</th>
+            <th>Lun</th>
+            <th>Mar</th>
+            <th>Mié</th>
+            <th>Jue</th>
+            <th>Vie</th>
+            <th>Sáb</th>
+        </tr>
+
+        {% set year = 2025 %}
+        {% set month = 5 %}
+        {% set start_day = namespace(val=0) %}
+
+        {% import 'calendar' as calendar %}
+        {% set total_days = (31 if month in [1,3,5,7,8,10,12] else 30 if month != 2 else 29) %}
+        
+        {% set day = 1 %}
+        {% for week in range(6) %}
+        <tr>
+            {% for weekday in range(7) %}
+                {% if week == 0 and weekday < (datetime(year, month, 1).weekday() + 1) % 7 %}
+                    <td></td>
+                {% elif day > total_days %}
+                    <td></td>
+                {% else %}
+                    <td>
+                        <div class="dia">{{ day }}</div>
+                        {% for medico, dias in disponibilidad.items() %}
+                            {% if day in dias %}
+                                <div class="disponible">{{ medico }}</div>
+                            {% endif %}
+                        {% endfor %}
+                        {% set day = day + 1 %}
+                    </td>
+                {% endif %}
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    <a href="/"><button>Volver</button></a>
+</body>
+</html>

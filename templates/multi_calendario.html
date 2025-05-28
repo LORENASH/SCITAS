@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- CSS y JS de Flatpickr + Plugin mes -->
+<!-- CSS y JS de Flatpickr + Plugin mes -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+  <meta charset="UTF-8">
+  <title>Disponibilidad Próximos 4 Meses</title>
+  <style>
+    .calendario {
+      display: inline-block;
+      vertical-align: top;
+      margin: 10px;
+      border: 1px solid #ccc;
+    }
+    table { border-collapse: collapse; width: 280px; }
+    th, td { border: 1px solid #ccc; width: 14.28%; height: 60px;
+              text-align: left; padding: 3px; font-size: 0.8em; }
+    th { background: #f0f0f0; }
+    .disponible { background: #e5ffe5; }
+    .no-disponible { background: #ffe5e5; }
+    .medico { font-size: 0.7em; color: #2c3e50; }
+    h3 { margin: 5px; text-align: center; }
+	</style>
+  <!-- Flatpickr CSS -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+	<!-- Flatpickr JS -->
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<!-- Idioma español -->
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+</head>
+<body>
+  <form action="/multi_calendario" method="get" style="margin-bottom:20px;">
+  <label for="inicio">Ver a partir de:</label>
+  <input type="text" id="inicio" name="inicio"
+         placeholder="Selecciona mes"
+         value="{{ request.args.get('inicio', '') }}">
+  <button type="submit">Filtrar</button>
+</form>
+
+	
+	<script>
+	  flatpickr("#inicio", {
+		locale: "es",
+		plugins: [
+		  new monthSelectPlugin({
+			shorthand: true,
+			dateFormat: "Y-m",  // lo que llega al backend como '2025-06'
+			theme: "light"
+		  })
+		]
+	  });
+	</script>
+
+
+<!-- Plugin de selección de mes -->
+		<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+
+	</form>
+
+
+  <h2>Disponibilidad Médica — Próximos 4 Meses</h2>
+  {% for bloque in meses %}
+    <div class="calendario">
+      <h3>{{ bloque.mes }}/{{ bloque.anio }}</h3>
+      <table>
+        <tr>
+          <th>Lun</th><th>Mar</th><th>Mié</th>
+          <th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
+        </tr>
+        {% for semana in bloque.semanas %}
+          <tr>
+            {% for celda in semana %}
+              {% if celda.dia == 0 %}
+                <td></td>
+              {% else %}
+                <td class="{{ 'disponible' if celda.medicos else 'no-disponible' }}">
+                  <strong>{{ celda.dia }}</strong><br>
+                  {% if celda.medicos %}
+                    {% for m in celda.medicos %}
+                      <div class="medico">• {{ m }}</div>
+                    {% endfor %}
+                  {% endif %}
+                </td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% endfor %}
+  <br style="clear: both;">
+  <a href="/"><button>← Volver</button></a>
+</body>
+</html>
