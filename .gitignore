@@ -3,3 +3,32 @@ __pycache__/
 *.pyc
 instance/
 .env.*
+
+# Entornos virtuales
+venv/
+.env
+*.env
+
+# Archivos compilados de Python
+__pycache__/
+*.pyc
+
+# Archivos temporales
+*.log
+*.tmp
+*.swp
+
+# Archivos de bases de datos locales
+*.sqlite3
+*.db
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de VSCode (si usas)
+.vscode/
+
+# PDFs generados o reportes
+*.pdf
+
