@@ -553,7 +553,6 @@ def confirmar_guardado():
     return redirect(url_for("index", guardado=1))
 
 @app.route('/editar_disponibilidad', methods=['GET', 'POST'])
-@app.route('/editar_disponibilidad', methods=['GET', 'POST'])
 def editar_disponibilidad():
     conexion = conectar_bd()
     cursor = conexion.cursor()
@@ -565,34 +564,40 @@ def editar_disponibilidad():
     lista_de_nombres = ["Dr. Correa", "Dr. Isla", "Dra. Laymito", "Dr. Figueroa", "Dra. Torres"]
 
     if request.method == 'POST':
-        # 🔴 Eliminar disponibilidad de los 4 meses (actual + 3)
+        # 1. Eliminar disponibilidad para los 4 meses (actual + 3)
         for i in range(4):
-            mes_borrar = mes_actual + i
-            anio_borrar = anio_actual
-            if mes_borrar > 12:
-                mes_borrar -= 12
-                anio_borrar += 1
-            cursor.execute("DELETE FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_borrar, anio_borrar))
+            m = mes_actual + i
+            y = anio_actual
+            if m > 12:
+                m -= 12
+                y += 1
+            cursor.execute("DELETE FROM disponibilidad WHERE mes = %s AND anio = %s", (m, y))
 
-        # 🟢 Insertar en los 4 meses
+        # 2. Leer solo los días del mes actual
+        disponibilidad_mes_actual = {}
+        for medico in lista_de_nombres:
+            dias = request.form.getlist(f"{medico}[]")
+            disponibilidad_mes_actual[medico] = [int(d) for d in dias]
+
+        # 3. Guardar la misma disponibilidad en 4 meses consecutivos
         for i in range(4):
             nuevo_mes = mes_actual + i
             nuevo_anio = anio_actual
             if nuevo_mes > 12:
                 nuevo_mes -= 12
                 nuevo_anio += 1
+
             for medico in lista_de_nombres:
-                dias = request.form.getlist(f"{medico}[]")
-                for dia in dias:
+                for dia in disponibilidad_mes_actual[medico]:
                     cursor.execute("""
                         INSERT INTO disponibilidad (medico, dia, mes, anio)
                         VALUES (%s, %s, %s, %s)
-                    """, (medico, int(dia), nuevo_mes, nuevo_anio))
+                    """, (medico, dia, nuevo_mes, nuevo_anio))
 
         conexion.commit()
-        mensaje = "¡Disponibilidad actualizada!"
+        mensaje = "¡Disponibilidad replicada por 4 meses!"
 
-    # 🔷 Recuperar disponibilidad de los próximos 4 meses
+    # Mostrar la disponibilidad de los próximos 4 meses
     cursor.execute("""
         SELECT medico, dia, mes, anio FROM disponibilidad
         WHERE 
@@ -617,6 +622,7 @@ def editar_disponibilidad():
         anio=anio_actual,
         mensaje=mensaje
     )
+
 
 
 # @app.route('/guardar_disponibilidad', methods=['POST'])
