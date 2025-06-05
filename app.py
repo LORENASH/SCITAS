@@ -553,41 +553,58 @@ def confirmar_guardado():
     return redirect(url_for("index", guardado=1))
 
 @app.route('/editar_disponibilidad', methods=['GET', 'POST'])
+@app.route('/editar_disponibilidad', methods=['GET', 'POST'])
 def editar_disponibilidad():
     conexion = conectar_bd()
     cursor = conexion.cursor()
     hoy = datetime.now()
     mes_actual = hoy.month
     anio_actual = hoy.year
-    mensaje = None  # 🔹 Aquí agregamos el mensaje opcional
+    mensaje = None
 
     lista_de_nombres = ["Dr. Correa", "Dr. Isla", "Dra. Laymito", "Dr. Figueroa", "Dra. Torres"]
 
     if request.method == 'POST':
-        cursor.execute("DELETE FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_actual, anio_actual))
-    for i in range(1, 4):  # 1, 2, 3 meses adelante
-        nuevo_mes = mes_actual + i
-        nuevo_anio = anio_actual
-        if nuevo_mes > 12:
-            nuevo_mes -= 12
-            nuevo_anio += 1
-        for medico in lista_de_nombres:
-            dias = request.form.getlist(f"{medico}[]")
-            for dia in dias:
-                cursor.execute("""
-                INSERT INTO disponibilidad (medico, dia, mes, anio)
-                VALUES (%s, %s, %s, %s)
-                """, (medico, int(dia), nuevo_mes, nuevo_anio))
+        # 🔴 Eliminar disponibilidad de los 4 meses (actual + 3)
+        for i in range(4):
+            mes_borrar = mes_actual + i
+            anio_borrar = anio_actual
+            if mes_borrar > 12:
+                mes_borrar -= 12
+                anio_borrar += 1
+            cursor.execute("DELETE FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_borrar, anio_borrar))
 
+        # 🟢 Insertar en los 4 meses
+        for i in range(4):
+            nuevo_mes = mes_actual + i
+            nuevo_anio = anio_actual
+            if nuevo_mes > 12:
+                nuevo_mes -= 12
+                nuevo_anio += 1
+            for medico in lista_de_nombres:
+                dias = request.form.getlist(f"{medico}[]")
+                for dia in dias:
+                    cursor.execute("""
+                        INSERT INTO disponibilidad (medico, dia, mes, anio)
+                        VALUES (%s, %s, %s, %s)
+                    """, (medico, int(dia), nuevo_mes, nuevo_anio))
 
         conexion.commit()
         mensaje = "¡Disponibilidad actualizada!"
 
-    cursor.execute("SELECT medico, dia FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_actual, anio_actual))
+    # 🔷 Recuperar disponibilidad de los próximos 4 meses
+    cursor.execute("""
+        SELECT medico, dia, mes, anio FROM disponibilidad
+        WHERE 
+            (anio = %s AND mes >= %s) OR 
+            (anio = %s AND mes < %s)
+    """, (anio_actual, mes_actual, anio_actual + 1, mes_actual))
     datos = cursor.fetchall()
+
     disponibilidad_actual = {}
-    for medico, dia in datos:
-        disponibilidad_actual.setdefault(medico, []).append(dia)
+    for medico, dia, mes, anio in datos:
+        clave = f"{medico}_{mes}_{anio}"
+        disponibilidad_actual.setdefault(clave, []).append(dia)
 
     cursor.close()
     conexion.close()
@@ -598,7 +615,7 @@ def editar_disponibilidad():
         disponibilidad=disponibilidad_actual,
         mes=mes_actual,
         anio=anio_actual,
-        mensaje=mensaje  # 🔹 Aquí se envía a la plantilla
+        mensaje=mensaje
     )
 
 
