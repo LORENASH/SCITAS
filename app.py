@@ -503,7 +503,7 @@ def multi_calendario():
     # 🛠️ Conexión a la base de datos y obtención de datos
     conn = conectar_bd()
     cursor = conn.cursor()
-    cursor.execute("SELECT medico, weekday FROM disponibilidad")
+    cursor.execute("SELECT medico, dia FROM disponibilidad")
     datos = cursor.fetchall()
     conn.close()
 
