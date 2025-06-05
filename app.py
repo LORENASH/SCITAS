@@ -510,7 +510,7 @@ def multi_calendario():
     # Agrupa por weekday
     dispo_por_weekday = {}
     for medico, wd in datos:
-        dispo_por_weekday.setdefault(int(wd), []).append(medico)
+        dispo_por_weekday.setdefault((wd), []).append(medico)
 
     # Prepara 4 meses consecutivos
     meses = []
