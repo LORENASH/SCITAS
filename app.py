@@ -565,7 +565,12 @@ def editar_disponibilidad():
 
     if request.method == 'POST':
         cursor.execute("DELETE FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_actual, anio_actual))
-
+    for i in range(1, 4):  # 1, 2, 3 meses adelante
+        nuevo_mes = mes_actual + i
+        nuevo_anio = anio_actual
+        if nuevo_mes > 12:
+            nuevo_mes -= 12
+            nuevo_anio += 1
         for medico in lista_de_nombres:
             dias = request.form.getlist(f"{medico}[]")
             for dia in dias:
