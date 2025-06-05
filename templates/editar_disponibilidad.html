@@ -4,32 +4,21 @@
   <meta charset="UTF-8">
   <title>Editar Disponibilidad Médica</title>
   <style>
-    table {
-      border-collapse: collapse;
-      margin-bottom: 30px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 5px 10px;
-      text-align: center;
-    }
-    .disponible {
-      background-color: lightgreen;
-    }
+    table { border-collapse: collapse; margin-bottom: 30px; }
+    th, td { border: 1px solid #ccc; padding: 5px; text-align: center; vertical-align: top; }
+    .disponible { background-color: lightgreen; }
   </style>
 </head>
 <body>
-  <h1>Editar Disponibilidad (Mes actual + 3 siguientes)</h1>
+  <h1>Editar Disponibilidad (Mes actual + 3)</h1>
 
   {% if mensaje %}
     <p style="color: green;">{{ mensaje }}</p>
   {% endif %}
 
   <form method="POST">
-
     {% for medico in medicos %}
       <h3>{{ medico }}</h3>
-
       <table>
         <tr>
           {% for i in range(4) %}
@@ -44,26 +33,19 @@
             {% set anio_iter = anio + ((mes + i - 1) // 12) %}
             <td>
               {% for dia in range(1, 32) %}
-                {% set clave = medico ~ "_" ~ mes_iter ~ "_" ~ anio_iter %}
-                {% if dia in disponibilidad.get(clave, []) %}
-                  <label class="disponible">
-                    <input type="checkbox" name="{{ medico }}[]" value="{{ dia }}" checked>
-                    {{ dia }}
-                  </label><br>
-                {% else %}
-                  <label>
-                    <input type="checkbox" name="{{ medico }}[]" value="{{ dia }}">
-                    {{ dia }}
-                  </label><br>
-                {% endif %}
+                {% set clave = medico ~ '_' ~ mes_iter ~ '_' ~ anio_iter %}
+                {% set marcado = dia in disponibilidad.get(clave, []) %}
+                <label {% if marcado %}class="disponible"{% endif %}>
+                  <input type="checkbox" name="{{ medico }}[]" value="{{ dia }}" {% if marcado %}checked{% endif %}>
+                  {{ dia }}
+                </label><br>
               {% endfor %}
             </td>
           {% endfor %}
         </tr>
       </table>
     {% endfor %}
-
-    <button type="submit">Guardar Disponibilidad</button>
+    <button type="submit">Guardar</button>
   </form>
 </body>
 </html>
