@@ -441,21 +441,57 @@ def ver_disponibilidad():
         anio=año
     )
 
-@app.route('/multi_calendario')
-def multi_calendario():
-    # Carga la disponibilidad como antes
-    conexion = conectar_bd()
-    cursor = conexion.cursor()
-    hoy = datetime.now()
-    mes0, año0 = hoy.month, hoy.year
-    cursor.execute(
-      "SELECT medico, dia FROM disponibilidad WHERE (anio = %s AND mes >= %s) OR (anio = %s AND mes < %s)",
-      (año0, mes0, año0+1, mes0)
-    )
-    datos = cursor.fetchall()
-    conexion.close()
+# @app.route('/multi_calendario')
+# def multi_calendario():
+    # # Carga la disponibilidad como antes
+    # conexion = conectar_bd()
+    # cursor = conexion.cursor()
+    # hoy = datetime.now()
+    # mes0, año0 = hoy.month, hoy.year
+    # cursor.execute(
+      # "SELECT medico, dia FROM disponibilidad WHERE (anio = %s AND mes >= %s) OR (anio = %s AND mes < %s)",
+      # (año0, mes0, año0+1, mes0)
+    # )
+    # datos = cursor.fetchall()
+    # conexion.close()
 
-    # 1. Leer parámetro “inicio”
+    # # 1. Leer parámetro “inicio”
+    # inicio = request.args.get('inicio')  # busca ?inicio=YYYY-MM
+    # if inicio:
+        # año0_str, mes0_str = inicio.split('-')
+        # año0, mes0 = int(año0_str), int(mes0_str)
+    # else:
+        # hoy = datetime.now()
+        # año0, mes0 = hoy.year, hoy.month
+
+
+
+
+    # # Agrupa por weekday
+    # dispo_por_weekday = {}
+    # for medico, wd in datos:
+        # dispo_por_weekday.setdefault(int(wd), []).append(medico)
+
+    # # Prepara 4 meses consecutivos
+    # meses = []
+    # for i in range(4):
+        # m = (mes0 - 1 + i) % 12 + 1
+        # y = año0 + ((mes0 - 1 + i) // 12)
+        # cal = calendar.Calendar()
+        # semanas = []
+        # for semana in cal.monthdayscalendar(y, m):
+            # semanas.append([
+                # {
+                  # 'dia': d,
+                  # 'medicos': dispo_por_weekday.get(datetime(y, m, d).weekday(), [])
+                # } if d != 0 else {'dia': 0, 'medicos': []}
+                # for d in semana
+            # ])
+        # meses.append({'mes': m, 'anio': y, 'semanas': semanas})
+
+    # return render_template('multi_calendario.html', meses=meses)
+@app.route("/multi_calendario")
+def multi_calendario():
     inicio = request.args.get('inicio')  # busca ?inicio=YYYY-MM
     if inicio:
         año0_str, mes0_str = inicio.split('-')
@@ -464,8 +500,12 @@ def multi_calendario():
         hoy = datetime.now()
         año0, mes0 = hoy.year, hoy.month
 
-
-
+    # 🛠️ Conexión a la base de datos y obtención de datos
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute("SELECT medico, weekday FROM disponibilidad")
+    datos = cursor.fetchall()
+    conn.close()
 
     # Agrupa por weekday
     dispo_por_weekday = {}
@@ -482,8 +522,8 @@ def multi_calendario():
         for semana in cal.monthdayscalendar(y, m):
             semanas.append([
                 {
-                  'dia': d,
-                  'medicos': dispo_por_weekday.get(datetime(y, m, d).weekday(), [])
+                    'dia': d,
+                    'medicos': dispo_por_weekday.get(datetime(y, m, d).weekday(), [])
                 } if d != 0 else {'dia': 0, 'medicos': []}
                 for d in semana
             ])
