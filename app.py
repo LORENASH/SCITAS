@@ -575,9 +575,10 @@ def editar_disponibilidad():
             dias = request.form.getlist(f"{medico}[]")
             for dia in dias:
                 cursor.execute("""
-                    INSERT INTO disponibilidad (medico, dia, mes, anio)
-                    VALUES (%s, %s, %s, %s)
-                """, (medico, int(dia), mes_actual, anio_actual))
+                INSERT INTO disponibilidad (medico, dia, mes, anio)
+                VALUES (%s, %s, %s, %s)
+                """, (medico, int(dia), nuevo_mes, nuevo_anio))
+
 
         conexion.commit()
         mensaje = "¡Disponibilidad actualizada!"
