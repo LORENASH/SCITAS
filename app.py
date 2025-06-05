@@ -443,53 +443,47 @@ def ver_disponibilidad():
 
 @app.route('/multi_calendario')
 def multi_calendario():
-    # Leer parámetro “inicio”
-    inicio = request.args.get('inicio')  # ejemplo: ?inicio=2025-06
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+    hoy = datetime.now()
+    mes0, año0 = hoy.month, hoy.year
+
+    cursor.execute(
+        "SELECT medico, dia FROM disponibilidad WHERE (anio = %s AND mes >= %s) OR (anio = %s AND mes < %s)",
+        (año0, mes0, año0+1, mes0)
+    )
+    datos = cursor.fetchall()
+    conexion.close()
+
+    inicio = request.args.get('inicio')
     if inicio:
         año0_str, mes0_str = inicio.split('-')
         año0, mes0 = int(año0_str), int(mes0_str)
-    else:
-        hoy = datetime.now()
-        año0, mes0 = hoy.year, hoy.month
 
-    # Conectar a la base de datos
-    conexion = conectar_bd()
-    cursor = conexion.cursor()
+    # Agrupar por weekday
+    dispo_por_weekday = {}
+    for medico, wd in datos:
+        dispo_por_weekday.setdefault(int(wd), []).append(medico)
 
+    # Pintar 4 meses
     meses = []
-
     for i in range(4):
         m = (mes0 - 1 + i) % 12 + 1
         y = año0 + ((mes0 - 1 + i) // 12)
-
-        # Consulta disponibilidad SOLO para ese mes y año
-        cursor.execute("SELECT medico, dia FROM disponibilidad WHERE mes = %s AND anio = %s", (m, y))
-        datos = cursor.fetchall()
-
-        # Agrupar disponibilidad por día de la semana
-        dispo_por_weekday = {}
-        for medico, dia_semana in datos:
-            dispo_por_weekday.setdefault(dia_semana, []).append(medico)
-
-        # Construcción del calendario
         cal = calendar.Calendar()
         semanas = []
         for semana in cal.monthdayscalendar(y, m):
-            fila = []
-            for d in semana:
-                if d == 0:
-                    fila.append({'dia': 0, 'medicos': []})
-                else:
-                    dia_semana = datetime(y, m, d).weekday()
-                    fila.append({'dia': d, 'medicos': dispo_por_weekday.get(dia_semana, [])})
-            semanas.append(fila)
-
+            semanas.append([
+                {
+                    'dia': d,
+                    'medicos': dispo_por_weekday.get(datetime(y, m, d).weekday(), [])
+                } if d != 0 else {'dia': 0, 'medicos': []}
+                for d in semana
+            ])
         meses.append({'mes': m, 'anio': y, 'semanas': semanas})
 
-    cursor.close()
-    conexion.close()
-
     return render_template('multi_calendario.html', meses=meses)
+
 
 # @app.route("/multi_calendario")
 # def multi_calendario():
@@ -552,6 +546,7 @@ def confirmar_guardado():
 
     return redirect(url_for("index", guardado=1))
 
+
 @app.route('/editar_disponibilidad', methods=['GET', 'POST'])
 def editar_disponibilidad():
     conexion = conectar_bd()
@@ -564,39 +559,29 @@ def editar_disponibilidad():
     lista_de_nombres = ["Dr. Correa", "Dr. Isla", "Dra. Laymito", "Dr. Figueroa", "Dra. Torres"]
 
     if request.method == 'POST':
-        # Borra disponibilidad de los 4 meses (mes actual + 3 siguientes)
-        for i in range(4):
-            mes_iter = (mes_actual + i - 1) % 12 + 1
-            anio_iter = anio_actual + ((mes_actual + i - 1) // 12)
-            cursor.execute("DELETE FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_iter, anio_iter))
+        cursor.execute("DELETE FROM disponibilidad WHERE anio = %s AND mes >= %s", (anio_actual, mes_actual))
 
-        # Inserta para los 4 meses
-        for i in range(4):
-            mes_iter = (mes_actual + i - 1) % 12 + 1
-            anio_iter = anio_actual + ((mes_actual + i - 1) // 12)
-            for medico in lista_de_nombres:
-                dias = request.form.getlist(f"{medico}[]")
-                for dia in dias:
-                    try:
-                        cursor.execute("""
-                            INSERT INTO disponibilidad (medico, dia, mes, anio)
-                            VALUES (%s, %s, %s, %s)
-                        """, (medico, int(dia), mes_iter, anio_iter))
-                    except:
-                        pass  # evita error en días inválidos
+        for medico in lista_de_nombres:
+            # ejemplo: request.form.getlist("Dr. Laymito[]") -> ['1', '3']
+            weekdays = request.form.getlist(f"{medico}[]")
+            for i in range(4):  # 4 meses
+                nuevo_mes = (mes_actual - 1 + i) % 12 + 1
+                nuevo_anio = anio_actual + ((mes_actual - 1 + i) // 12)
+                for wd in weekdays:
+                    cursor.execute("""
+                        INSERT INTO disponibilidad (medico, dia, mes, anio)
+                        VALUES (%s, %s, %s, %s)
+                    """, (medico, int(wd), nuevo_mes, nuevo_anio))
 
         conexion.commit()
         mensaje = "¡Disponibilidad actualizada!"
 
-    # Leer toda la disponibilidad de los 4 meses
+    # Mostrar disponibilidad solo del mes actual (para los checkboxes)
+    cursor.execute("SELECT medico, dia FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_actual, anio_actual))
+    datos = cursor.fetchall()
     disponibilidad_actual = {}
-    for i in range(4):
-        mes_iter = (mes_actual + i - 1) % 12 + 1
-        anio_iter = anio_actual + ((mes_actual + i - 1) // 12)
-        cursor.execute("SELECT medico, dia FROM disponibilidad WHERE mes = %s AND anio = %s", (mes_iter, anio_iter))
-        for medico, dia in cursor.fetchall():
-            clave = f"{medico}_{mes_iter}_{anio_iter}"
-            disponibilidad_actual.setdefault(clave, []).append(dia)
+    for medico, dia in datos:
+        disponibilidad_actual.setdefault(medico, []).append(dia)
 
     cursor.close()
     conexion.close()
