@@ -596,22 +596,22 @@ def editar_disponibilidad():
     )
 
 
-@app.route('/guardar_disponibilidad', methods=['POST'])
-def guardar_disponibilidad():
-    nueva_disponibilidad = {}
-    for medico in request.form.getlist('medico'):
-        dias = request.form.getlist(f'dias_{medico}')
-        nueva_disponibilidad[medico] = list(map(int, dias))
+# @app.route('/guardar_disponibilidad', methods=['POST'])
+# def guardar_disponibilidad():
+    # nueva_disponibilidad = {}
+    # for medico in request.form.getlist('medico'):
+        # dias = request.form.getlist(f'dias_{medico}')
+        # nueva_disponibilidad[medico] = list(map(int, dias))
 
-    ruta = os.path.join(os.path.dirname(__file__), 'disponibilidad_medicos.json')
-    with open(ruta, 'w') as f:
-        json.dump(nueva_disponibilidad, f, indent=2)
+    # ruta = os.path.join(os.path.dirname(__file__), 'disponibilidad_medicos.json')
+    # with open(ruta, 'w') as f:
+        # json.dump(nueva_disponibilidad, f, indent=2)
 
-    return redirect(url_for('editar_disponibilidad'))
+    # return redirect(url_for('editar_disponibilidad'))
 
-@app.route('/form_disponibilidad')
-def form_disponibilidad():
-    return render_template('form_disponibilidad.html')  # o como se llame tu archivo
+# @app.route('/form_disponibilidad')
+# def form_disponibilidad():
+    # return render_template('form_disponibilidad.html')  # o como se llame tu archivo
 
 
 
