@@ -1,17 +1,97 @@
-<form method="POST">
-  {% for medico in medicos %}
-    <div><strong>{{ medico }}</strong></div>
-    <div>
-      {% for i in range(7) %}
-        <label>
-          <input type="checkbox" name="{{ medico }}[]" value="{{ i }}"
-          {% if i in disponibilidad.get(medico, []) %}checked{% endif %}>
-          {{ ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][i] }}
-        </label>
-      {% endfor %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Disponibilidad Médica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5fff5;
+            padding: 20px;
+        }
+        .medico {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #e7f7e7;
+            border-radius: 8px;
+        }
+        .dias {
+            margin-top: 10px;
+        }
+        .mensaje {
+            padding: 10px;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .calendario {
+            margin-top: 30px;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+            border: 1px solid #b5d3e7;
+        }
+        .botones {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Editar Disponibilidad Médica</h1>
+    <h3>Mes actual: {{ mes_actual }} / {{ anio_actual }}</h3>
+
+    {% if mensaje %}
+        <div class="mensaje">{{ mensaje }}</div>
+    {% endif %}
+
+    <form method="POST">
+        {% for medico in medicos %}
+            <div class="medico">
+                <h3>{{ medico }}</h3>
+                <div class="dias">
+                    {% for dia_semana in [1,2,3,4,5,6,7] %}
+                        <label>
+                            <input 
+                                type="checkbox" 
+                                name="{{ medico }}[]" 
+                                value="{{ dia_semana }}"
+                                {% if dia_semana in disponibilidad.get(medico, []) %} checked {% endif %}
+                            > 
+                            {{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][dia_semana-1] }}
+                        </label><br>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="botones">
+            <button type="submit">Guardar Disponibilidad</button>
+            <a href="/editar_disponibilidad?reset=1">
+                <button type="button">Nueva Disponibilidad (Vacía)</button>
+            </a>
+            <a href="/">
+                <button type="button">← Volver a Inicio</button>
+            </a>
+        </div>
+    </form>
+
+    {% if disponibilidad_por_dia %}
+    <div class="calendario">
+        <h2>Disponibilidad por día (Mes actual)</h2>
+        {% for dia, medicos in disponibilidad_por_dia.items() %}
+            <h4>{{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][dia-1] }}</h4>
+            <ul>
+                {% for medico in medicos %}
+                    <li>{{ medico }}</li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
     </div>
-    <br>
-  {% endfor %}
-  <button type="submit">Guardar disponibilidad</button>
-</form>
-<a href="/"><button>← Volver</button></a>
+    {% endif %}
+
+</body>
+</html>
