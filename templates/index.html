@@ -114,6 +114,7 @@
 			<label for="offset">¿A cuántos días?</label><br>
 			<select id="offset" name="offset" onchange="onOffsetChange()" required>
 			  <option value="">-- Elige un plazo --</option>
+			  <option value="30">30 días</option>
 			  <option value="60">60 días</option>
 			  <option value="90">90 días</option>
 			  <option value="120">120 días</option>
@@ -154,6 +155,9 @@
 
         <label>Seleccionar Fecha (opcional):</label><br>
         <input type="date" name="proxima_fecha"><br><br>
+		
+		<label>Seleccionar Mes:</label><br>
+		<input type="month" name="mes_anio"><br><br>
 
         <button type="submit">Generar PDF</button>
     </form>

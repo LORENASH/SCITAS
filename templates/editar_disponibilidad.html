@@ -53,7 +53,7 @@
             <div class="medico">
                 <h3>{{ medico }}</h3>
                 <div class="dias">
-                    {% for dia_semana in [1,2,3,4,5,6,7] %}
+                    {% for dia_semana in [1,2,3,4,5,6] %}
                         <label>
                             <input 
                                 type="checkbox" 
@@ -61,7 +61,7 @@
                                 value="{{ dia_semana }}"
                                 {% if dia_semana in disponibilidad.get(medico, []) %} checked {% endif %}
                             > 
-                            {{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][dia_semana-1] }}
+                            {{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][dia_semana-1] }}
                         </label><br>
                     {% endfor %}
                 </div>

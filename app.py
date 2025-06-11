@@ -10,10 +10,7 @@ import sys
 from datetime import date
 import os
 import json
-from dotenv import load_dotenv
-
-
-
+#from dotenv import load_dotenv
 
 app = Flask(__name__)
 #disponibilidad_medicos
@@ -45,7 +42,7 @@ def conectar_bd():
         password="",  # cambia si tu MySQL tiene contraseña
         database="modulo"
     )
-#carga las variables de entorno de env
+#carga las variables de entorno de env Render
 load_dotenv()
 
     
@@ -73,8 +70,8 @@ def obtener_disponibilidad_actual():
 
     disponibilidad_medicos = {}
     for medico, dia in datos:
-        if dia == 6:
-            continue  # omitimos domingos
+        # if dia == 6:
+            # continue  # omitimos domingos
         disponibilidad_medicos.setdefault(medico, []).append(dia)
     return disponibilidad_medicos
 
@@ -290,7 +287,7 @@ def guardar():
     ajustada = False
     intentos = 0
     while True:
-        if proxima_fecha.weekday() in disponibilidad:
+        if (proxima_fecha.weekday()+1) in disponibilidad:
             cursor.execute("""
                 SELECT COUNT(*) FROM pacientes
                 WHERE medico = %s AND proxima_fecha = %s
@@ -329,62 +326,113 @@ def guardar():
                            ajustada=ajustada)
 
 
+from flask import send_file, request
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
+
 @app.route('/reporte', methods=['GET', 'POST'])
 def reporte():
     try:
-        # Obtener filtros desde el formulario
+        # Obtener filtros
         medico = request.form.get('medico', '')
         proximafecha = request.form.get('proxima_fecha', '')
+        mes_anio = request.form.get('mes_anio', '')
 
         conexion = conectar_bd()
         cursor = conexion.cursor()
 
-        # Consultas según filtros, incluyendo el campo 'medico'
-        if medico and proximafecha:
-            cursor.execute("SELECT nombre, dni, fecha, proxima_fecha, medico FROM pacientes WHERE medico = %s AND proxima_fecha = %s", (medico, proximafecha))
-        elif medico:
-            cursor.execute("SELECT nombre, dni, fecha, proxima_fecha, medico FROM pacientes WHERE medico = %s", (medico,))
-        elif proximafecha:
-            cursor.execute("SELECT nombre, dni, fecha, proxima_fecha, medico FROM pacientes WHERE proxima_fecha = %s", (proximafecha,))
-        else:
-            cursor.execute("SELECT nombre, dni, fecha, proxima_fecha, medico FROM pacientes")
+        query = "SELECT nombre, dni, fecha, proxima_fecha, medico FROM pacientes WHERE 1=1"
+        params = []
 
+        if medico:
+            query += " AND medico = %s"
+            params.append(medico)
+        if proximafecha:
+            query += " AND proxima_fecha = %s"
+            params.append(proximafecha)
+        if mes_anio:
+            anio, mes = mes_anio.split('-')
+            query += " AND MONTH(proxima_fecha) = %s AND YEAR(proxima_fecha) = %s"
+            params.extend([int(mes), int(anio)])
+
+        cursor.execute(query, tuple(params))
         pacientes = cursor.fetchall()
 
         if not pacientes:
             return "No se encontraron pacientes con esos filtros."
 
-        # Generar el PDF
-        buffer = io.BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-
-        c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(300, 750, "Reporte de Pacientes")
-
-        # Mostrar nombre del médico si se filtró por uno
-        y = 720
-        c.setFont("Helvetica", 12)
-        if medico:
-            c.drawString(50, y, f"Médico: {medico}")
-            y -= 20
-
-        c.setFont("Helvetica", 10)
-
-
-        
+        # Agrupar por médico
+        pacientes_por_medico = {}
         for p in pacientes:
             nombre, dni, fecha, proxima, medico_actual = p
-            #Formatear fechas a día/mes/año
-            fecha_formateada = fecha.strftime("%d/%m/%Y")
-            proxima_formateada = proxima.strftime("%d/%m/%Y")
-            c.drawString(50, y, f"Nombre: {nombre} - DNI: {dni} - Fecha Registro: {fecha_formateada} - Próxima Fecha: {proxima_formateada}")
-            y -= 20
-            if y < 50:
-                c.showPage()
-                y = 750
+            pacientes_por_medico.setdefault(medico_actual, []).append((nombre, dni, fecha, proxima))
 
-        # Total
-        y -= 10
+        # PDF
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        y = 750
+
+        # Título dinámico
+        c.setFont("Helvetica-Bold", 14)
+        c.drawCentredString(300, y, "Reporte de Pacientes")
+        y -= 30
+
+        if mes_anio:
+            c.setFont("Helvetica", 12)
+            c.drawString(50, y, f"Mes/Año: {mes_anio}")
+            y -= 20
+        elif proximafecha:
+            c.setFont("Helvetica", 12)
+            c.drawString(50, y, f"Fecha específica: {proximafecha}")
+            y -= 20
+
+        # Coordenadas tabla
+        x_nombre = 50
+        x_dni = 200
+        x_fecha = 280
+        x_proxima = 360
+       
+
+        for medico_actual in sorted(pacientes_por_medico.keys()):
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(50, y, f"Médico: {medico_actual}")
+            y -= 20
+
+            # Cabecera de tabla
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(x_nombre, y, "Nombre")
+            c.drawString(x_dni, y, "DNI")
+            c.drawString(x_fecha, y, "Fecha")
+            c.drawString(x_proxima, y, "Próxima")
+            y -= 10
+            c.line(50, y, 550, y)
+            y -= 10
+
+            c.setFont("Helvetica", 10)
+            for nombre, dni, fecha, proxima in pacientes_por_medico[medico_actual]:
+                fecha_str = fecha.strftime("%d/%m/%Y")
+                proxima_str = proxima.strftime("%d/%m/%Y")
+
+                c.drawString(x_nombre, y, nombre)
+                c.drawString(x_dni, y, dni)
+                c.drawString(x_fecha, y, fecha_str)
+                c.drawString(x_proxima, y, proxima_str)
+                
+                y -= 20
+
+                if y < 60:
+                    c.showPage()
+                    y = 750
+                    c.setFont("Helvetica", 10)
+
+            # Total por médico
+            y -= 5
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(60, y, f"Total de pacientes de {medico_actual}: {len(pacientes_por_medico[medico_actual])}")
+            y -= 30
+
+        # Total general
         c.setFont("Helvetica-Bold", 11)
         c.drawString(50, y, f"Total de pacientes: {len(pacientes)}")
 
@@ -396,10 +444,6 @@ def reporte():
         return f"Error al generar el reporte: {str(e)}"
 
 
-    except Exception as e:
-        # Si hay algún error, mostrarlo claramente
-        return f"Error al generar el reporte: {str(e)}"
-
 
 @app.route('/ver_disponibilidad')
 def ver_disponibilidad():
@@ -408,30 +452,33 @@ def ver_disponibilidad():
     hoy = datetime.now()
     año, mes = hoy.year, hoy.month
 
-    # Lee tu tabla de disponibilidad: guarda weekday (0–6)
+    # Leer disponibilidad desde base de datos (1 = lunes, ..., 6 = sábado)
     cursor.execute("SELECT medico, dia FROM disponibilidad WHERE mes=%s AND anio=%s", (mes, año))
     datos = cursor.fetchall()
     conexion.close()
 
-    # Agrupa médicos por weekday
+    # Agrupar médicos por día (1 a 6)
     dispo_por_weekday = {}
     for medico, weekday in datos:
         dispo_por_weekday.setdefault(weekday, []).append(medico)
 
-    # Genera calendario: lista de semanas, cada semana lista de dicts {dia, medicos}
+    # Generar semanas del mes actual
     cal = calendar.Calendar()
     semanas = []
     for semana in cal.monthdayscalendar(año, mes):
         semana_data = []
         for dia in semana:
             if dia == 0:
-                semana_data.append({'dia': 0, 'medicos': []})
+                semana_data.append({'dia': 0, 'medicos': []})  # Día vacío
             else:
-                wd = datetime(año, mes, dia).weekday()
-                semana_data.append({
-                    'dia': dia,
-                    'medicos': dispo_por_weekday.get(wd, [])
-                })
+                wd = datetime(año, mes, dia).weekday() + 1  # Ajustamos: 1 = lunes, ..., 7 = domingo
+                if wd <= 6:  # Solo lunes a sábado
+                    semana_data.append({
+                        'dia': dia,
+                        'medicos': dispo_por_weekday.get(wd, [])
+                    })
+                else:
+                    semana_data.append({'dia': dia, 'medicos': []})  # Domingo vacío
         semanas.append(semana_data)
 
     return render_template(
@@ -440,6 +487,7 @@ def ver_disponibilidad():
         mes=mes,
         anio=año
     )
+
 
 @app.route('/multi_calendario')
 def multi_calendario():
@@ -470,7 +518,7 @@ def multi_calendario():
     for medico, wd in datos:
         try:
             wd_int = int(wd)
-            if 0 <= wd_int <= 6:
+            if 1 <= wd_int <= 6:  # Solo de lunes (1) a sábado (6), domingo (0) lo ignoramos
                 dispo_por_weekday.setdefault(wd_int, []).append(medico)
         except:
             continue
@@ -487,8 +535,19 @@ def multi_calendario():
             for d in semana:
                 if d != 0:
                     try:
-                        weekday = datetime(y, m, d).weekday()
-                        medicos = list(set(dispo_por_weekday.get(weekday, [])))
+                        weekday = datetime(y, m, d).weekday()  # 0=lunes ... 6=domingo
+
+                        if weekday < 6:
+                            dia_dispo = weekday + 1  # 1=lunes ... 6=sábado
+                        else:
+                            dia_dispo = 0  # Domingo → no hay disponibilidad
+
+                        # Obtener médicos
+                        if dia_dispo != 0:
+                            medicos = list(set(dispo_por_weekday.get(dia_dispo, [])))
+                        else:
+                            medicos = []
+
                         semana_info.append({'dia': d, 'medicos': medicos})
                     except:
                         semana_info.append({'dia': d, 'medicos': []})
@@ -498,6 +557,7 @@ def multi_calendario():
         meses.append({'mes': m, 'anio': y, 'semanas': semanas})
 
     return render_template('multi_calendario.html', meses=meses)
+
 
 
 
