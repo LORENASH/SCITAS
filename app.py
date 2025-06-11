@@ -10,7 +10,7 @@ import sys
 from datetime import date
 import os
 import json
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 #disponibilidad_medicos
