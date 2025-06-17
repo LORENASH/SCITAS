@@ -42,7 +42,7 @@ nombres_con_titulo = {
         # user="root",
         # password="",  # cambia si tu MySQL tiene contraseña
         # database="modulo"
-    )
+#    )
 #carga las variables de entorno de env Render
 load_dotenv()
 
