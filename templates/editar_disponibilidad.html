@@ -51,7 +51,9 @@
     <form method="POST">
         {% for medico in medicos %}
             <div class="medico">
-                <h3>{{ medico }}</h3>
+                <!-- <h3>{{ medico }}</h3> -->
+				<h3>{{ nombres_con_titulo[medico] if medico in nombres_con_titulo else medico }}</h3>
+
                 <div class="dias">
                     {% for dia_semana in [1,2,3,4,5,6] %}
                         <label>
