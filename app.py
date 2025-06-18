@@ -38,14 +38,14 @@ nombres_con_titulo = {
         # database="modulo"
     # )
 
-# #root
+#root
 # def conectar_bd(): 
     # return mysql.connector.connect(
         # host="localhost",
         # user="root",
-        # password="",  # cambia si tu MySQL tiene contraseña
+        # password="",  
         # database="modulo"
-   # )
+   )
 #carga las variables de entorno de env Render
 load_dotenv()
 
@@ -541,7 +541,7 @@ def login():
     if request.method == 'POST':
         usuario = request.form['usuario']
         contraseña = request.form['contraseña']
-        contraseña_encriptada = generate_password_hash(contraseña)
+#        contraseña_encriptada = generate_password_hash(contraseña)
 
         conexion = conectar_bd()
         cursor = conexion.cursor()
@@ -589,10 +589,10 @@ def index():
     return render_template('index.html', usuario=session['usuario'], disponibilidad=disponibilidad_medicos)
 
 
-
+#localhost
 # if __name__ == '__main__':
     # app.run(debug=True ,host='0.0.0.0', port=10000)
     
 # #para render
-if __name__ == '__main__':
+ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
