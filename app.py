@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, send_file, url_for
+from flask import Flask, render_template, request, redirect, send_file, url_for, session
 import mysql.connector
 from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import letter
@@ -10,6 +10,9 @@ import sys
 from datetime import date
 import os
 import json
+#from werkzeug.security import generate_password_hash, check_password_hash
+
+#import pymysql
 #render
 from dotenv import load_dotenv
 
@@ -42,7 +45,7 @@ nombres_con_titulo = {
         # user="root",
         # password="",  # cambia si tu MySQL tiene contraseña
         # database="modulo"
-#    )
+   # )
 #carga las variables de entorno de env Render
 load_dotenv()
 
@@ -96,29 +99,6 @@ def disponibilidad():
 
     return render_template('disponibilidad.html')
 
-
-
-@app.route('/')
-def index():
-    conexion = conectar_bd()
-    cursor = conexion.cursor()
-    
-    hoy = datetime.now()
-    mes, anio = hoy.month, hoy.year
-
-    cursor.execute("SELECT medico, dia FROM disponibilidad WHERE mes = %s AND anio = %s", (mes, anio))
-    datos = cursor.fetchall()
-    conexion.close()
-
-    global disponibilidad_medicos
-    disponibilidad_medicos = {}  # Vaciar el diccionario antes de actualizar
-
-    for medico, dia in datos:
-        if medico not in disponibilidad_medicos:
-            disponibilidad_medicos[medico] = []
-        disponibilidad_medicos[medico].append(dia)
-
-    return render_template('index.html', disponibilidad=disponibilidad_medicos)
 
 
 @app.route('/guardar', methods=['POST'])
@@ -535,7 +515,7 @@ def editar_disponibilidad():
     "Dr. Julia": "Dra. Julia",
     "Dr. Isla": "Dr. Isla",
     "Dr. Figueroa": "Dr. Figueroa"
-}
+    }
 
     
     return render_template(
@@ -548,6 +528,66 @@ def editar_disponibilidad():
         mensaje=mensaje,
         nombres_con_titulo=nombres_con_titulo
     )
+
+
+
+#app = Flask(__name__)
+app.secret_key = 'clavesecreta'  # Cambia esto
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    mensaje = ''
+    if request.method == 'POST':
+        usuario = request.form['usuario']
+        contraseña = request.form['contraseña']
+        contraseña_encriptada = generate_password_hash(contraseña)
+
+        conexion = conectar_bd()
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM usuarios WHERE username = %s AND password = %s", (usuario, contraseña))
+        usuario = cursor.fetchone()
+        cursor.close()
+        conexion.close()
+
+        if usuario:
+            session['usuario'] = usuario[1]
+            return redirect(url_for('index'))
+        else:
+            mensaje = '❌ Usuario o contraseña incorrectos'
+
+    return render_template('login.html', mensaje=mensaje)
+
+@app.route('/logout')
+def logout():
+    session.pop('usuario', None)
+    return redirect(url_for('login'))
+
+@app.route('/')
+def index():
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+    
+    hoy = datetime.now()
+    mes, anio = hoy.month, hoy.year
+
+    cursor.execute("SELECT medico, dia FROM disponibilidad WHERE mes = %s AND anio = %s", (mes, anio))
+    datos = cursor.fetchall()
+    conexion.close()
+
+    global disponibilidad_medicos
+    disponibilidad_medicos = {}
+
+    for medico, dia in datos:
+        if medico not in disponibilidad_medicos:
+            disponibilidad_medicos[medico] = []
+        disponibilidad_medicos[medico].append(dia)
+
+    return render_template('index.html', usuario=session['usuario'], disponibilidad=disponibilidad_medicos)
+
 
 
 # if __name__ == '__main__':
